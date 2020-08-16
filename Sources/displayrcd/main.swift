@@ -25,7 +25,7 @@ struct Displayrcd: ParsableCommand {
         ) { _ in
             guard currentDisplayName != NSScreen.main?.localizedName else { return }
             currentDisplayName = NSScreen.main?.localizedName
-            reload()
+            self.reload()
         }
     }
 
