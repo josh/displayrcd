@@ -1,43 +1,49 @@
+import ArgumentParser
 import Cocoa
 
-let shURL = URL(fileURLWithPath: "/bin/bash")
-let displayrcURL = FileManager.default.homeDirectoryForCurrentUser
-    .appendingPathComponent(".displayrc")
+struct Displayrcd: ParsableCommand {
+    @Argument(help: "The path to a displayrc.")
+    var displayrc = FileManager.default.homeDirectoryForCurrentUser
+        .appendingPathComponent(".displayrc").path
 
-func reload() {
-    let displayName = NSScreen.main?.localizedName ?? ""
-    fputs("+ \(shURL.path) -x \(displayrcURL.path) DISPLAY_NAME=\"\(displayName)\"\n", stderr)
+    @Argument(help: "The shell to use.")
+    var shell = "/bin/bash"
 
-    let process = Process()
-    process.executableURL = shURL
-    process.arguments = ["-x", displayrcURL.path]
-
-    var environment = ProcessInfo.processInfo.environment
-    environment["DISPLAY_NAME"] = displayName
-    process.environment = environment
-
-    process.launch()
-    process.waitUntilExit()
-}
-
-func observeMainDisplayChanges() {
-    var currentDisplayName: String?
-
-    NotificationCenter.default.addObserver(
-        forName: NSApplication.didChangeScreenParametersNotification,
-        object: NSApplication.shared,
-        queue: .main
-    ) { _ in
-        guard currentDisplayName != NSScreen.main?.localizedName else {
-            return
-        }
-        currentDisplayName = NSScreen.main?.localizedName
-
+    func run() throws {
         reload()
+        observeMainDisplayChanges()
+        RunLoop.current.run()
     }
 
-    reload()
-    RunLoop.current.run()
+    func observeMainDisplayChanges() {
+        var currentDisplayName: String?
+
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification,
+            object: NSApplication.shared,
+            queue: .main
+        ) { _ in
+            guard currentDisplayName != NSScreen.main?.localizedName else { return }
+            currentDisplayName = NSScreen.main?.localizedName
+            reload()
+        }
+    }
+
+    func reload() {
+        let displayName = NSScreen.main?.localizedName ?? ""
+        fputs("+ \(shell) -x \(displayrc) DISPLAY_NAME=\"\(displayName)\"\n", stderr)
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: shell)
+        process.arguments = ["-x", displayrc]
+
+        var environment = ProcessInfo.processInfo.environment
+        environment["DISPLAY_NAME"] = displayName
+        process.environment = environment
+
+        process.launch()
+        process.waitUntilExit()
+    }
 }
 
-observeMainDisplayChanges()
+Displayrcd.main()
