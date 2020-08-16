@@ -4,7 +4,7 @@ Run a script when your Mac changes displays.
 
 ## Installation
 
-Install with Hombrew.
+Install with Homebrew.
 
 ```
 $ brew install josh/tap/displayrcd
